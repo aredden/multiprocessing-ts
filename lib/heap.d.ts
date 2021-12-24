@@ -15,4 +15,3 @@ export default class Heap {
     mergePairs(heapLL: WorkerData): WorkerData<any, any, any, any> | undefined;
 }
 export {};
-//# sourceMappingURL=../src/src/heap.d.ts.map

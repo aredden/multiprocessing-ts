@@ -14,4 +14,3 @@ export default class PriorityQueue {
         reject: (value: any) => unknown;
     }): void;
 }
-//# sourceMappingURL=../src/src/priority-queue.d.ts.map

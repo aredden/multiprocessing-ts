@@ -31,4 +31,3 @@ export default class Pool {
     _assertIsUsableFnOrModulePath(fnOrModulePath: any): void;
     _getNextJobId(): number;
 }
-//# sourceMappingURL=../src/src/pool.d.ts.map

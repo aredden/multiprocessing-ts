@@ -26,4 +26,3 @@ export default class WorkerWrapper {
     startJobTimeout(job: Job): void;
 }
 export {};
-//# sourceMappingURL=../src/src/worker-wrapper.d.ts.map
