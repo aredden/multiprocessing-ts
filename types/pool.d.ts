@@ -9,9 +9,9 @@ export default class Pool {
     constructor(numWorkers: number);
     close(): void;
     terminate(): void;
-    define(name: PropertyKey, fnOrModulePath: Function | string, options: any): void;
-    apply(arg: any[], fnOrModulePath: Function | string, options: any): P<any>;
-    map(arr: any[], fnOrModulePath: any, options: any): P<unknown>;
+    define(name: PropertyKey, fnOrModulePath: (arg: any) => unknown | string, options: any): void;
+    apply(arg: any, fnOrModulePath: (arg: any) => any | string, options: any): P<any>;
+    map(arr: any[], fnOrModulePath: any, options: any): P<any[]>;
     _queuePush(arr: string | any[], fnOrModulePath: any, options: {
         chunksize?: any;
     }, cb: {

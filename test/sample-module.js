@@ -1,3 +1,3 @@
-'use strict'
+'use strict';
 
-module.exports = name => `Hello, ${name}!`
+module.exports = (name) => `Hello, ${name}!`;

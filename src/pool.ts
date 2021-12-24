@@ -2,6 +2,7 @@ import jsonUtils from './json-utils';
 import WorkerWrapper from './worker-wrapper';
 import P from 'bluebird';
 import os from 'os';
+import has from 'lodash/has';
 
 export default class Pool {
 	[x: PropertyKey]: any;
@@ -15,7 +16,6 @@ export default class Pool {
 
 		this.queue = [];
 		this.closed = false;
-		// @ts-ignore
 		this.workers = Array.from(new Array(numWorkers)).map(() => new WorkerWrapper());
 		this.readyWorkers = this.workers.slice();
 		this._nextJobId = 0;
@@ -34,8 +34,8 @@ export default class Pool {
 		this.workers.forEach((worker) => worker.terminateImmediately());
 	}
 
-	define(name: PropertyKey, fnOrModulePath: Function | string, options: any) {
-		if (this.hasOwnProperty(name)) {
+	define(name: PropertyKey, fnOrModulePath: (arg: any) => unknown | string, options: any) {
+		if (has(this, name)) {
 			throw new Error(`Pool already has a property "${String(name)}"`);
 		}
 		this[name] = {
@@ -45,13 +45,12 @@ export default class Pool {
 	}
 
 	// Applies single argument to a function and returns result via a Promise
-	apply(arg: any[], fnOrModulePath: Function | string, options: any): P<any> {
-		// @ts-ignore
+	apply(arg: any, fnOrModulePath: (arg: any) => any | string, options: any): P<any> {
 		return this.map([arg], fnOrModulePath, options).spread((result) => result);
 	}
 
 	map(arr: any[], fnOrModulePath: any, options: any) {
-		return new P((resolve, reject) =>
+		return new P<any[]>((resolve, reject) =>
 			this._queuePush(arr, fnOrModulePath, options, (err: any, data: any) =>
 				err ? reject(err) : resolve(data)
 			)

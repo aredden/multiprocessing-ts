@@ -3,19 +3,18 @@ import Heap from './heap';
 import P from 'bluebird';
 
 export default class PriorityQueue {
-	numReadyWorkers: any;
-	pool: any;
-	heap: any;
+	numReadyWorkers: number;
+	pool: Pool;
+	heap: Heap;
 
 	constructor(numWorkers: number) {
 		this.numReadyWorkers = numWorkers;
-		// @ts-ignore
 		this.pool = new Pool(numWorkers);
 		this.heap = new Heap();
 	}
 
-	push(arg: any, priority: any, fnOrModulePath: Function | string, options: any) {
-		return new P((resolve, reject) => {
+	push<T = any, R = any>(arg: T, priority: number, fnOrModulePath: (arg: T) => R | string, options: any) {
+		return new P<R>((resolve, reject) => {
 			this.heap.insert(priority, {
 				args: [arg, fnOrModulePath, options],
 				resolve: resolve,
@@ -32,7 +31,11 @@ export default class PriorityQueue {
 		}
 	}
 
-	_processTask(task: { args: any; resolve: any; reject: any }) {
+	_processTask(task: {
+		args: [arg1: any, arg2: any, arg3: any];
+		resolve: (value: any) => unknown;
+		reject: (value: any) => unknown;
+	}) {
 		this.pool
 			.apply(...task.args)
 			.then(task.resolve, task.reject)

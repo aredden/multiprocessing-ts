@@ -1,14 +1,21 @@
-const newHeapNode = (elem: any, data: any, child: any = null, next: any = null) => ({
-	elem: elem,
-	data: data,
-	child: child,
-	next: next,
-});
+const newHeapNode: <E = any, D = any, C = any, N = any>(
+	elem: E,
+	data: D,
+	child?: C,
+	next?: N
+) => WorkerData<E, D, C, N> = (elem, data, child?, next?) => {
+	return {
+		elem: elem,
+		data: data,
+		child: child,
+		next: next,
+	};
+};
 
-type WorkerData = { elem: any; data?: any; child?: any; next?: any };
+type WorkerData<E = any, D = any, C = any, N = any> = { elem: E; data?: D; child?: C; next?: N };
 
 export default class Heap {
-	root: any;
+	root: WorkerData['elem'];
 	len: number;
 	constructor() {
 		this.root = null;
@@ -25,15 +32,12 @@ export default class Heap {
 		return max;
 	}
 
-	insert(elem: any, data: any) {
-		this.root = this.merge(this.root, newHeapNode(elem, data));
+	insert(elem: WorkerData['elem'], data: WorkerData['data']) {
+		this.root = this.merge(this.root, newHeapNode<typeof elem, typeof data, null, null>(elem, data));
 		return ++this.len;
 	}
 
-	link(
-		parent: { child?: any; elem?: number; data?: any; next?: any },
-		child: { child?: any; elem?: number; data?: any; next?: any }
-	) {
+	link(parent: WorkerData, child: WorkerData) {
 		const firstChild = parent.child;
 		parent.child = child;
 		child.next = firstChild;

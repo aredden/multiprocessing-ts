@@ -1,15 +1,15 @@
 const JS_DATE_REGEX = /^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d.\d\d\dZ$/;
 
-function reviver(key: any, value: string | number | Date) {
+function reviver(_key: any, value: string | number | Date) {
 	return typeof value === 'string' && JS_DATE_REGEX.test(value) ? new Date(value) : value;
 }
-function safeStringify(obj: any) {
+function safeStringify(obj: object) {
 	return typeof obj !== 'undefined' ? JSON.stringify(obj) : obj;
 }
 function safeParse(
 	this: {
-		reviver: (key: any, value: string | number | Date) => string | number | Date;
-		safeStringify: (obj: any) => string | undefined;
+		reviver: (key: string, value: string | number | Date) => string | number | Date;
+		safeStringify: (obj: object) => string | undefined;
 		safeParse: (str: string) => any;
 	},
 	str: string

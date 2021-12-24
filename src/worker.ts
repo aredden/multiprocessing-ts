@@ -4,21 +4,30 @@ const isPromise = (obj: Promise<any> | any) => obj && typeof obj.then === 'funct
 
 function processData(argList: any[], jobId: string | number, index: any) {
 	function sendErr(err: Error) {
-		if (process.send)
-			process.send({
-				jobId: jobId,
-				error: err.message,
-				stack: err.stack,
-			});
+		try {
+			if (process.send)
+				if (process.send)
+					process.send({
+						jobId: jobId,
+						error: err.message,
+						stack: err.stack,
+					});
+		} catch (err) {
+			console.error(err);
+		}
 	}
 	function sendSucess(res: any, offset: number) {
-		if (process.send)
-			process.send({
-				jobId: jobId,
-				index: index + offset,
-				result: jsonUtils.safeStringify(res),
-				jobDone: offset === argList.length - 1,
-			});
+		try {
+			if (process.send)
+				process.send({
+					jobId: jobId,
+					index: index + offset,
+					result: jsonUtils.safeStringify(res),
+					jobDone: offset === argList.length - 1,
+				});
+		} catch (err) {
+			console.error(err);
+		}
 	}
 	function handlePromise(promise: Promise<any>, offset: any) {
 		return promise.then((res: any) => sendSucess(res, offset), sendErr);

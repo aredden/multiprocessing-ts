@@ -1,37 +1,35 @@
 import { fork, ChildProcess } from 'child_process';
 import jsonUtils from './json-utils';
+import has from 'lodash/has';
+const allWorkers: WorkerWrapper[] = [];
+process.on('exit', () => allWorkers.forEach((worker) => worker.process?.kill()));
 
-const allWorkers: any[] = [];
-process.on('exit', () => allWorkers.forEach((worker) => worker.process.kill()));
-
-function makeError(errorMsg: string, stack: string) {
+function makeError(errorMsg: string, stack?: string) {
 	const err = new Error(errorMsg);
 	err.stack = stack;
 	return err;
 }
 
 type Job = {
-	callback: Function;
-	fnOrModulePath: string | Function;
+	callback: (...args: any[]) => void;
+	fnOrModulePath: string | ((...args: any[]) => void);
 	timeout: number;
 	options: object;
 	terminated: boolean;
 };
 export default class WorkerWrapper {
-	process: ChildProcess;
+	process: ChildProcess | null;
 	runningJobs: number;
 	terminated: boolean;
 	registeredJobs: Record<string, Job>;
 	fnOrModulePaths: object;
-	timeout: NodeJS.Timeout;
+	timeout: NodeJS.Timeout | null;
 	constructor() {
-		// @ts-ignore
 		this.process = null;
 		this.runningJobs = 0;
 		this.terminated = false;
 		this.registeredJobs = {};
 		this.fnOrModulePaths = {};
-		// @ts-ignore
 		this.timeout = null;
 
 		this.startWorkerProcess();
@@ -41,43 +39,47 @@ export default class WorkerWrapper {
 	startWorkerProcess() {
 		this.process = fork(`${__dirname}/worker.js`);
 		for (const regJobId in this.registeredJobs) {
-			if (this.registeredJobs.hasOwnProperty(regJobId)) {
+			if (has(this.registeredJobs, regJobId)) {
 				const job = this.registeredJobs[regJobId];
 				this.registerJob(regJobId, job.fnOrModulePath, {}, job.callback);
 			}
 		}
-		this.process.on('message', (data: { jobId: string | number; error: any; stack: any; jobDone: any }) => {
-			if (!this.registeredJobs || !this.registeredJobs[data.jobId]) {
-				throw new Error('No job was registered for: ' + data.jobId);
+		this.process.on(
+			'message',
+			(data: { jobId: string | number; error: string; stack: string | undefined; jobDone: any }) => {
+				if (!this.registeredJobs || !this.registeredJobs[data.jobId]) {
+					throw new Error('No job was registered for: ' + data.jobId);
+				}
+				const job = this.registeredJobs[data.jobId];
+				if (job.terminated) {
+					return;
+				}
+				if (this.timeout) {
+					clearTimeout(this.timeout);
+				}
+				let err = null;
+				if (data.error) {
+					err = makeError(data.error, data.stack);
+				}
+				job.callback(err, data);
+				if (data.jobDone) {
+					this.runningJobs -= 1;
+				} else if (job.timeout > 0) {
+					this.startJobTimeout(job);
+				}
+				if (this.terminated && this.runningJobs === 0 && this.process) {
+					this.process.disconnect();
+				}
 			}
-			const job = this.registeredJobs[data.jobId];
-			if (job.terminated) {
-				return;
-			}
-
-			clearTimeout(this.timeout);
-			let err = null;
-			if (data.error) {
-				err = makeError(data.error, data.stack);
-			}
-			job.callback(err, data);
-			if (data.jobDone) {
-				this.runningJobs -= 1;
-			} else if (job.timeout > 0) {
-				this.startJobTimeout(job);
-			}
-			if (this.terminated && this.runningJobs === 0) {
-				this.process.disconnect();
-			}
-		});
+		);
 	}
 
-	runJob(jobId: string | number, index: any, argList: any) {
+	runJob<T>(jobId: string | number, index: number, argList: T[]) {
 		if (this.terminated) {
 			return;
 		} // TODO: should this be an error?
 
-		this.process.send({
+		this.process?.send({
 			jobId: jobId,
 			index: index,
 			argList: jsonUtils.safeStringify(argList),
@@ -93,11 +95,11 @@ export default class WorkerWrapper {
 		}
 	}
 
-	registerJob(
+	registerJob<T, R>(
 		jobId: string,
-		fnOrModulePath: Function | string,
+		fnOrModulePath: ((...args: T[]) => R) | string,
 		options: { timeout?: number },
-		callback: Function
+		callback: (...args: R[]) => void
 	) {
 		const timeout = (options ? options.timeout : null) || -1;
 
@@ -112,7 +114,7 @@ export default class WorkerWrapper {
 		this.registeredJobs[jobId] = { callback, fnOrModulePath, timeout, options, terminated: false };
 		const modulePath = typeof fnOrModulePath === 'string' ? fnOrModulePath : null;
 		const fnStr = typeof fnOrModulePath === 'function' ? fnOrModulePath.toString() : null;
-		this.process.send({
+		this.process?.send({
 			jobId: jobId,
 			modulePath: modulePath,
 			fnStr: fnStr,
@@ -125,7 +127,7 @@ export default class WorkerWrapper {
 		} // TODO: should this be an error?
 		if (this.registeredJobs) {
 			delete this.registeredJobs[jobId];
-			this.process.send({
+			this.process?.send({
 				jobId: jobId,
 				deregisterJob: true,
 			});
@@ -134,9 +136,9 @@ export default class WorkerWrapper {
 
 	terminateImmediately() {
 		this.terminated = true;
-		this.process.disconnect();
+		this.process?.disconnect();
 		for (const cbName in this.registeredJobs) {
-			if (this.registeredJobs.hasOwnProperty(cbName)) {
+			if (has(this.registeredJobs, cbName)) {
 				this.registeredJobs[cbName].callback(new Error('Pool was closed'), null);
 			}
 		}
@@ -145,14 +147,16 @@ export default class WorkerWrapper {
 	terminateAfterJobsComplete() {
 		this.terminated = true;
 		if (this.runningJobs === 0) {
-			this.process.disconnect();
+			if (this.process?.connected) {
+				this.process.disconnect();
+			}
 		}
 	}
 
 	startJobTimeout(job: Job) {
 		this.timeout = setTimeout(() => {
 			job.terminated = true;
-			this.process.kill();
+			this.process?.kill();
 			this.startWorkerProcess();
 			job.callback(new Error('Task timed out'), null);
 		}, job.timeout);
