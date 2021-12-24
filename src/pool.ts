@@ -34,7 +34,7 @@ export default class Pool {
 		this.workers.forEach((worker) => worker.terminateImmediately());
 	}
 
-	define(name: PropertyKey, fnOrModulePath: (arg: any) => unknown | string, options: any) {
+	define(name: PropertyKey, fnOrModulePath: (arg: any) => unknown | string, options?: any) {
 		if (has(this, name)) {
 			throw new Error(`Pool already has a property "${String(name)}"`);
 		}
@@ -45,11 +45,11 @@ export default class Pool {
 	}
 
 	// Applies single argument to a function and returns result via a Promise
-	apply(arg: any, fnOrModulePath: (arg: any) => any | string, options: any): P<any> {
+	apply(arg: any, fnOrModulePath: (arg: any) => any | string, options?: any): P<any> {
 		return this.map([arg], fnOrModulePath, options).spread((result) => result);
 	}
 
-	map(arr: any[], fnOrModulePath: any, options: any) {
+	map(arr: any[], fnOrModulePath: any, options?: any) {
 		return new P<any[]>((resolve, reject) =>
 			this._queuePush(arr, fnOrModulePath, options, (err: any, data: any) =>
 				err ? reject(err) : resolve(data)
@@ -60,18 +60,18 @@ export default class Pool {
 	_queuePush(
 		arr: string | any[],
 		fnOrModulePath: any,
-		options: { chunksize?: any },
-		cb: { (err: any, data: any): void; (arg0: Error, arg1: any[]): any }
+		options?: { chunksize?: any },
+		cb?: { (err: any, data: any): void; (arg0: Error, arg1: any[]): any }
 	) {
 		options = options || {};
 		const chunksize = typeof options === 'number' ? options : options.chunksize;
 
 		if (this.closed) {
-			return cb(new Error('Pool has been closed'), null);
+			return cb !== undefined && cb(new Error('Pool has been closed'), null);
 		}
 		this._assertIsUsableFnOrModulePath(fnOrModulePath);
 		if (!arr || !arr.length) {
-			return cb(null, []);
+			return cb !== undefined && cb(null, []);
 		}
 
 		const job = {
@@ -105,9 +105,9 @@ export default class Pool {
 		arr: any;
 		fnOrModulePath: any;
 		chunksize?: any;
-		cb: any;
+		cb?: any;
 		nextIndex?: number;
-		options: any;
+		options?: any;
 	}) {
 		const result: any[] = [];
 		let tasksRemaining = job.arr.length;

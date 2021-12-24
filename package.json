@@ -11,10 +11,10 @@
 		"lint": "eslint src",
 		"pretty": "prettier src/**/*.ts --write && prettier test/**/*.js --write && prettier lib/**/*.js --write",
 		"pretty:test": "prettier src/**/*.ts -c && prettier test/**/*.js -c && prettier lib/**/*.js -c",
-		"clean:pwsh": "pwsh -Command \"rm types/*.map && rm types/*.ts && rm lib/*.map && rm lib/*.js\"",
+		"clean:pwsh": "pwsh -Command \"rm lib/*.map && rm lib/*.js && rm lib/*.d.ts\"",
 		"prepare": "husky install",
 		"precommit": "yarn test && yarn pretty:test && yarn lint",
-		"commitprep": "tsc && yarn pretty && yarn lint"
+		"commitprep": "yarn clean:pwsh && tsc && yarn pretty && yarn lint"
 	},
 	"babel": {
 		"presets": [

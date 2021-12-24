@@ -13,7 +13,7 @@ export default class PriorityQueue {
 		this.heap = new Heap();
 	}
 
-	push<T = any, R = any>(arg: T, priority: number, fnOrModulePath: (arg: T) => R | string, options: any) {
+	push<T = any, R = any>(arg: T, priority: number, fnOrModulePath: (arg: T) => R | string, options?: any) {
 		return new P<R>((resolve, reject) => {
 			this.heap.insert(priority, {
 				args: [arg, fnOrModulePath, options],
@@ -33,8 +33,8 @@ export default class PriorityQueue {
 
 	_processTask(task: {
 		args: [arg1: any, arg2: any, arg3: any];
-		resolve: (value: any) => unknown;
-		reject: (value: any) => unknown;
+		resolve?: (value: any) => unknown;
+		reject?: (value: any) => unknown;
 	}) {
 		this.pool
 			.apply(...task.args)
