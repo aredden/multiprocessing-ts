@@ -7,7 +7,7 @@ Dead simple parallel processing for node
 ## Example
 
 ```javascript
-const Pool = require('multiprocessing').Pool;
+const Pool = require('multiprocessing-ts').Pool;
 
 function square(x) {
   return x * x;
@@ -32,7 +32,7 @@ module.exports = function squareAsync(x) {
 
 ```javascript
 // ./main.js
-const Pool = require('multiprocessing').Pool;
+const Pool = require('multiprocessing-ts').Pool;
 (new Pool(4)).map([1, 2, 3], __dirname + '/worker')
   .then(function (res) {
     // [1, 4, 9]
@@ -77,7 +77,7 @@ Takes a function that is called with each result as it comes in. Useful for stre
 NOTE: The onResult is called in whatever order results come back in. This may not be the same order as the input array.
 
 ```javascript
-const Pool = require('multiprocessing').Pool;
+const Pool = require('multiprocessing-ts').Pool;
 
 function square(x) {
   return x * x;
@@ -98,7 +98,7 @@ Approximate maximum processing time to allow for a single item in the array. If 
 Recommended that you use this only for longer tasks, or as a way to prevent infinite loops. Timeouts below 200ms or so can be unreliable.
 
 ```javascript
-const Pool = require('multiprocessing').Pool;
+const Pool = require('multiprocessing-ts').Pool;
 
 function anInfiniteLoop() {
   while (true) {}
@@ -136,7 +136,7 @@ A max priority queue built off of a pool of worker processes. Items with a highe
 Pushes an item onto the queue and returns a promise that will be resolved with the result or rejected if any errors were raised.
 
 ```javascript
-const PriorityQueue = require('multiprocessing').PriorityQueue;
+const PriorityQueue = require('multiprocessing-ts').PriorityQueue;
 
 function square(x) {
   return x * x;
