@@ -45,12 +45,12 @@ export default class Pool {
 	}
 
 	// Applies single argument to a function and returns result via a Promise
-	apply(arg: any, fnOrModulePath: (arg: any) => any | string, options?: any): P<any> {
-		return this.map([arg], fnOrModulePath, options).spread((result) => result);
+	apply<T = any, R = T>(arg: T, fnOrModulePath: (arg: T) => R | string, options?: any): P<R> {
+		return this.map<T, R>([arg], fnOrModulePath, options).spread((result) => result);
 	}
 
-	map(arr: any[], fnOrModulePath: any, options?: any) {
-		return new P<any[]>((resolve, reject) =>
+	map<T = any, R = T>(arr: T[], fnOrModulePath: any, options?: any) {
+		return new P<R[]>((resolve, reject) =>
 			this._queuePush(arr, fnOrModulePath, options, (err: any, data: any) =>
 				err ? reject(err) : resolve(data)
 			)

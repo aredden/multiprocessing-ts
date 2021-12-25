@@ -39,12 +39,6 @@ const Pool = require('multiprocessing').Pool;
   });
 ```
 
-## Installation
-
-Via npm:
-
-    npm install multiprocessing
-
 ## Writing a mapper function
 
 Functions passed to the mapper can't reference any variables declared outside of their block scope. This is because they must be stringified in order to be passed to the child processes.

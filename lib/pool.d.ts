@@ -10,8 +10,8 @@ export default class Pool {
     close(): void;
     terminate(): void;
     define(name: PropertyKey, fnOrModulePath: (arg: any) => unknown | string, options?: any): void;
-    apply(arg: any, fnOrModulePath: (arg: any) => any | string, options?: any): P<any>;
-    map(arr: any[], fnOrModulePath: any, options?: any): P<any[]>;
+    apply<T = any, R = T>(arg: T, fnOrModulePath: (arg: T) => R | string, options?: any): P<R>;
+    map<T = any, R = T>(arr: T[], fnOrModulePath: any, options?: any): P<R[]>;
     _queuePush(arr: string | any[], fnOrModulePath: any, options?: {
         chunksize?: any;
     }, cb?: {
