@@ -3,13 +3,14 @@ import WorkerWrapper from './worker-wrapper';
 import P from 'bluebird';
 import os from 'os';
 import has from 'lodash/has';
+import type { Job, JobOptions, FNOrModulePath } from '.';
 
-export default class Pool {
+export default class Pool<T = any> {
 	[x: PropertyKey]: any;
-	queue: any[];
+	queue: Job<T>[];
 	closed: boolean;
-	workers: any[];
-	readyWorkers: any;
+	workers: WorkerWrapper[];
+	readyWorkers: WorkerWrapper[];
 	_nextJobId: number;
 	constructor(numWorkers: number) {
 		numWorkers = numWorkers || os.cpus().length;
@@ -34,7 +35,7 @@ export default class Pool {
 		this.workers.forEach((worker) => worker.terminateImmediately());
 	}
 
-	define(name: PropertyKey, fnOrModulePath: (arg: any) => unknown | string, options?: any) {
+	define<M = CallableFunction>(name: PropertyKey, fnOrModulePath: FNOrModulePath<M>, options?: any) {
 		if (has(this, name)) {
 			throw new Error(`Pool already has a property "${String(name)}"`);
 		}
@@ -45,11 +46,19 @@ export default class Pool {
 	}
 
 	// Applies single argument to a function and returns result via a Promise
-	apply<T = any, R = T>(arg: T, fnOrModulePath: (arg: T) => R | string, options?: any): P<R> {
-		return this.map<T, R>([arg], fnOrModulePath, options).spread((result) => result);
+	apply<T = any, R = T, M = CallableFunction>(
+		arg: T,
+		fnOrModulePath: FNOrModulePath<M>,
+		options?: any
+	): P<R> {
+		return this.map<T, R, M>([arg], fnOrModulePath, options).spread((result) => result);
 	}
 
-	map<T = any, R = T>(arr: T[], fnOrModulePath: any, options?: any) {
+	map<T = any, R = T, M = CallableFunction | string>(
+		arr: T[],
+		fnOrModulePath: FNOrModulePath<M>,
+		options?: any
+	) {
 		return new P<R[]>((resolve, reject) =>
 			this._queuePush(arr, fnOrModulePath, options, (err: any, data: any) =>
 				err ? reject(err) : resolve(data)
@@ -57,10 +66,10 @@ export default class Pool {
 		);
 	}
 
-	_queuePush(
-		arr: string | any[],
-		fnOrModulePath: any,
-		options?: { chunksize?: any },
+	_queuePush<T = any, R = T, M = CallableFunction | string>(
+		arr: T[],
+		fnOrModulePath: FNOrModulePath<M>,
+		options?: JobOptions,
 		cb?: { (err: any, data: any): void; (arg0: Error, arg1: any[]): any }
 	) {
 		options = options || {};
@@ -74,7 +83,7 @@ export default class Pool {
 			return cb !== undefined && cb(null, []);
 		}
 
-		const job = {
+		const job: Job<T, R, CallableFunction | string, typeof Function> = {
 			id: this._getNextJobId(),
 			arr: arr,
 			fnOrModulePath: fnOrModulePath,
@@ -82,42 +91,37 @@ export default class Pool {
 			cb: cb,
 			nextIndex: 0,
 			options: options,
-		};
-		this._registerJobWithWorkers(job);
-		this.queue.push(job);
+		} as any;
+		this._registerJobWithWorkers<T, R, M>(job);
+		this.queue.push(job as any);
 		this._queueTick();
 	}
 
 	_queueTick() {
 		while (this.queue.length && this.readyWorkers.length) {
 			const job = this.queue[0];
-			const chunk = job.arr.slice(job.nextIndex, job.nextIndex + job.chunksize);
-			this.readyWorkers.pop().runJob(job.id, job.nextIndex, chunk);
-			job.nextIndex += job.chunksize;
+			const chunk = job.arr.slice(job.nextIndex, (job.nextIndex as number) + (job.chunksize as number));
+
+			this.readyWorkers.pop()?.runJob(job.id, job.nextIndex as number, chunk);
+			job.nextIndex = job.nextIndex as number;
+			job.nextIndex += job.chunksize as number;
+
 			if (job.nextIndex >= job.arr.length) {
 				this.queue.shift();
 			}
 		}
 	}
 
-	_registerJobWithWorkers(job: {
-		id: any;
-		arr: any;
-		fnOrModulePath: any;
-		chunksize?: any;
-		cb?: any;
-		nextIndex?: number;
-		options?: any;
-	}) {
-		const result: any[] = [];
-		let tasksRemaining = job.arr.length;
+	_registerJobWithWorkers<T = any, R = T, M = CallableFunction>(job: Job<T, R, any, typeof Function>) {
+		const result: R[] = [];
+		let tasksRemaining = job.arr?.length ? job.arr.length : 0;
 		let jobTerminated = false;
 		this.workers.forEach((worker) => {
-			worker.registerJob(
-				job.id,
-				job.fnOrModulePath,
-				job.options,
-				(err: any, data: { index: number; result: any }) => {
+			worker.registerJob<T, R>(
+				typeof job.id === 'number' ? String(job.id) : job.id,
+				job.fnOrModulePath as FNOrModulePath<M>,
+				job.options ? job.options : {},
+				(err: Error | null | undefined, data: { index: number; result: R } | undefined) => {
 					this.readyWorkers.push(worker);
 					this._queueTick();
 
@@ -130,8 +134,12 @@ export default class Pool {
 						jobTerminated = true;
 						return job.cb(err, null);
 					}
-
-					result[data.index] = jsonUtils.safeParse(data.result);
+					if (!data) {
+						throw 'No data returned from worker.';
+					}
+					if (typeof data.result === 'string') {
+						result[data.index] = jsonUtils.safeParse(data.result);
+					}
 					if (job.options && job.options.onResult) {
 						job.options.onResult(result[data.index], data.index);
 					}
@@ -145,7 +153,7 @@ export default class Pool {
 		});
 	}
 
-	_assertIsUsableFnOrModulePath(fnOrModulePath: any) {
+	_assertIsUsableFnOrModulePath(fnOrModulePath: FNOrModulePath<any>) {
 		if (typeof fnOrModulePath !== 'function' && typeof fnOrModulePath !== 'string') {
 			throw new Error('fnOrModulePath must be a function or a string');
 		}

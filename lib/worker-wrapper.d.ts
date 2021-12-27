@@ -1,12 +1,6 @@
 /// <reference types="node" />
 import { ChildProcess } from 'child_process';
-declare type Job = {
-    callback: (...args: any[]) => void;
-    fnOrModulePath: string | ((...args: any[]) => void);
-    timeout: number;
-    options: object;
-    terminated: boolean;
-};
+import type { Job, FNOrModulePath, JobOptions } from '.';
 export default class WorkerWrapper {
     process: ChildProcess | null;
     runningJobs: number;
@@ -17,12 +11,12 @@ export default class WorkerWrapper {
     constructor();
     startWorkerProcess(): void;
     runJob<T>(jobId: string | number, index: number, argList: T[]): void;
-    registerJob<T, R>(jobId: string, fnOrModulePath: ((...args: T[]) => R) | string, options: {
-        timeout?: number;
-    }, callback: (...args: R[]) => void): void;
+    registerJob<T = any, R = T, M = string | CallableFunction | any>(jobId: string, fnOrModulePath: FNOrModulePath<M>, options: JobOptions, callback: (err: Error | null | undefined, data?: {
+        index: number;
+        result: R;
+    }) => void): void;
     deregisterJob(jobId: string | number): void;
     terminateImmediately(): void;
     terminateAfterJobsComplete(): void;
     startJobTimeout(job: Job): void;
 }
-export {};

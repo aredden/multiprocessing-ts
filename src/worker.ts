@@ -13,7 +13,7 @@ function processData(argList: any[], jobId: string | number, index: any) {
 						stack: err.stack,
 					});
 		} catch (err) {
-			console.error(err);
+			console.warn(err);
 		}
 	}
 	function sendSucess(res: any, offset: number) {
@@ -26,11 +26,16 @@ function processData(argList: any[], jobId: string | number, index: any) {
 					jobDone: offset === argList.length - 1,
 				});
 		} catch (err) {
-			console.error(err);
+			console.warn(err);
 		}
 	}
-	function handlePromise(promise: Promise<any>, offset: any) {
-		return promise.then((res: any) => sendSucess(res, offset), sendErr);
+	async function handlePromise(promise: Promise<any>, offset: any) {
+		try {
+			const res = await promise;
+			return sendSucess(res, offset);
+		} catch (err) {
+			return sendErr(err as Error);
+		}
 	}
 
 	try {
@@ -43,6 +48,11 @@ function processData(argList: any[], jobId: string | number, index: any) {
 		return sendErr(err as any as Error);
 	}
 }
+
+process.on('uncaughtException', (err) => {
+	console.error(err);
+	process.exit(1);
+});
 
 process.on(
 	'message',

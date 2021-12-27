@@ -1,6 +1,7 @@
 import { fork, ChildProcess } from 'child_process';
 import jsonUtils from './json-utils';
 import has from 'lodash/has';
+import type { Job, FNOrModulePath, JobOptions } from '.';
 const allWorkers: WorkerWrapper[] = [];
 process.on('exit', () => allWorkers.forEach((worker) => worker.process?.kill()));
 
@@ -10,13 +11,6 @@ function makeError(errorMsg: string, stack?: string) {
 	return err;
 }
 
-type Job = {
-	callback: (...args: any[]) => void;
-	fnOrModulePath: string | ((...args: any[]) => void);
-	timeout: number;
-	options: object;
-	terminated: boolean;
-};
 export default class WorkerWrapper {
 	process: ChildProcess | null;
 	runningJobs: number;
@@ -95,11 +89,11 @@ export default class WorkerWrapper {
 		}
 	}
 
-	registerJob<T, R>(
+	registerJob<T = any, R = T, M = string | CallableFunction | any>(
 		jobId: string,
-		fnOrModulePath: ((...args: T[]) => R) | string,
-		options: { timeout?: number },
-		callback: (...args: R[]) => void
+		fnOrModulePath: FNOrModulePath<M>,
+		options: JobOptions,
+		callback: (err: Error | null | undefined, data?: { index: number; result: R }) => void
 	) {
 		const timeout = (options ? options.timeout : null) || -1;
 
@@ -111,7 +105,14 @@ export default class WorkerWrapper {
 			return;
 		}
 
-		this.registeredJobs[jobId] = { callback, fnOrModulePath, timeout, options, terminated: false };
+		this.registeredJobs[jobId] = {
+			id: jobId,
+			callback,
+			fnOrModulePath,
+			timeout,
+			options,
+			terminated: false,
+		} as Job;
 		const modulePath = typeof fnOrModulePath === 'string' ? fnOrModulePath : null;
 		const fnStr = typeof fnOrModulePath === 'function' ? fnOrModulePath.toString() : null;
 		this.process?.send({

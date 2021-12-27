@@ -129,14 +129,20 @@ describe('Pool', function () {
 			const fn3 = function (n) {
 				return n;
 			};
-			return P.all([pool.map(arr1, fn1), pool.map(arr2, fn2), pool.map(arr3, fn3)]).spread(function (
-				res1,
-				res2,
-				res3
-			) {
+			const arr4 = _.range(1, 4);
+			const fn4 = function (n) {
+				n * 4;
+			};
+			return P.all([
+				pool.map(arr1, fn1),
+				pool.map(arr2, fn2),
+				pool.map(arr3, fn3),
+				pool.map(arr4, fn4),
+			]).spread(function (res1, res2, res3, res4) {
 				res1.should.eql(arr1.map(fn1));
 				res2.should.eql(arr2.map(fn2));
 				res3.should.eql(arr3.map(fn3));
+				res4.should.eql([]);
 			});
 		});
 
