@@ -1,8 +1,25 @@
-# node-multiprocessing
-Dead simple parallel processing for node
+# multiprocess-ts
 
-## Version 1.0 upgrade notes
-- Upgrades Bluebird from ^2 to ^3 ([see details here](http://bluebirdjs.com/docs/new-in-bluebird-3.html))
+Simple parallel processing for node, with typescript support.
+
+## New Features (as of 12/27/2021)
+Added support for more data types to be transferred to child processes via `superjson`!:
+
+| type        | supported by standard JSON  | supported by Superjson  |
+| ----------- | --------------------------- | ----------------------- |
+| `string`    | ✅                           | ✅                       |
+| `number`    | ✅                           | ✅                       |
+| `boolean`   | ✅                           | ✅                       |
+| `null`      | ✅                           | ✅                       |
+| `Array`     | ✅                           | ✅                       |
+| `Object`    | ✅                           | ✅                       |
+| `undefined` | ❌                           | ✅                       |
+| `bigint`    | ❌                           | ✅                       |
+| `Date`      | ❌                           | ✅                       |
+| `RegExp`    | ❌                           | ✅                       |
+| `Set`       | ❌                           | ✅                       |
+| `Map`       | ❌                           | ✅                       |
+| `Error`     | ❌                           | ✅                       |
 
 ## Example
 
@@ -80,14 +97,26 @@ NOTE: The onResult is called in whatever order results come back in. This may no
 const Pool = require('multiprocess-ts').Pool;
 
 function square(x) {
-  return x * x;
+	return x * x;
 }
 
-const pool = new Pool(4);
+let pool = new Pool(4);
 
-result = []
-pool.map([1, 2, 3], square, {onResult: val => { result.push(val) }})
-  .then(() => console.log(result));
+result = [];
+pool
+	.map([1, 2, 3], square, {
+		onResult: (val) => {
+			result.push(val);
+		},
+	})
+	.then(() => {
+		console.log(result);
+
+		if (!pool.closed) {
+			pool.terminate();
+		}
+
+	});
 // prints "[4, 9, 1]"
 // OR in some other order, depending on how we receive the results!
 ```
@@ -101,13 +130,18 @@ Recommended that you use this only for longer tasks, or as a way to prevent infi
 const Pool = require('multiprocess-ts').Pool;
 
 function anInfiniteLoop() {
-  while (true) {}
+	while (true) {}
 }
 
 const pool = new Pool(4);
 
-pool.map([1, 2, 3, 4, 5], anInfiniteLoop, {timeout: 1000})
-  .catch(err => console.log(err));
+pool
+	.map([1, 2, 3, 4, 5, 6, 7, 8], anInfiniteLoop, { timeout: 1000 })
+	.catch((err) => console.log(err))
+	.finally(() => {
+		pool.terminate();
+	});
+
 
 // "Task timed out!"
 ```

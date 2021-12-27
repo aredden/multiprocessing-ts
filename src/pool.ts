@@ -35,7 +35,7 @@ export default class Pool<T = any> {
 		this.workers.forEach((worker) => worker.terminateImmediately());
 	}
 
-	define<M = CallableFunction>(name: PropertyKey, fnOrModulePath: FNOrModulePath<M>, options?: any) {
+	define<M = CallableFunction>(name: PropertyKey, fnOrModulePath: FNOrModulePath<M>, options?: JobOptions) {
 		if (has(this, name)) {
 			throw new Error(`Pool already has a property "${String(name)}"`);
 		}
@@ -49,7 +49,7 @@ export default class Pool<T = any> {
 	apply<T = any, R = T, M = CallableFunction>(
 		arg: T,
 		fnOrModulePath: FNOrModulePath<M>,
-		options?: any
+		options?: JobOptions
 	): P<R> {
 		return this.map<T, R, M>([arg], fnOrModulePath, options).spread((result) => result);
 	}
@@ -57,7 +57,7 @@ export default class Pool<T = any> {
 	map<T = any, R = T, M = CallableFunction | string>(
 		arr: T[],
 		fnOrModulePath: FNOrModulePath<M>,
-		options?: any
+		options?: JobOptions
 	) {
 		return new P<R[]>((resolve, reject) =>
 			this._queuePush(arr, fnOrModulePath, options, (err: any, data: any) =>
@@ -138,7 +138,7 @@ export default class Pool<T = any> {
 						throw 'No data returned from worker.';
 					}
 					if (typeof data.result === 'string') {
-						result[data.index] = jsonUtils.safeParse(data.result);
+						result[data.index] = jsonUtils.safeParse(data.result) as R;
 					}
 					if (job.options && job.options.onResult) {
 						job.options.onResult(result[data.index], data.index);

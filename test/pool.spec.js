@@ -142,7 +142,7 @@ describe('Pool', function () {
 				res1.should.eql(arr1.map(fn1));
 				res2.should.eql(arr2.map(fn2));
 				res3.should.eql(arr3.map(fn3));
-				res4.should.eql([]);
+				res4.should.eql(arr4.map(fn4));
 			});
 		});
 

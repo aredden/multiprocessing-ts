@@ -65,7 +65,7 @@ process.on(
 		fnStr: string;
 	}) => {
 		if (data.argList) {
-			processData(jsonUtils.safeParse(data.argList), data.jobId, data.index);
+			processData(jsonUtils.safeParse(data.argList) as any, data.jobId, data.index);
 		}
 		if (data.deregisterJob) {
 			delete jobFns[data.jobId];

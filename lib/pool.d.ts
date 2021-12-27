@@ -11,9 +11,9 @@ export default class Pool<T = any> {
     constructor(numWorkers: number);
     close(): void;
     terminate(): void;
-    define<M = CallableFunction>(name: PropertyKey, fnOrModulePath: FNOrModulePath<M>, options?: any): void;
-    apply<T = any, R = T, M = CallableFunction>(arg: T, fnOrModulePath: FNOrModulePath<M>, options?: any): P<R>;
-    map<T = any, R = T, M = CallableFunction | string>(arr: T[], fnOrModulePath: FNOrModulePath<M>, options?: any): P<R[]>;
+    define<M = CallableFunction>(name: PropertyKey, fnOrModulePath: FNOrModulePath<M>, options?: JobOptions): void;
+    apply<T = any, R = T, M = CallableFunction>(arg: T, fnOrModulePath: FNOrModulePath<M>, options?: JobOptions): P<R>;
+    map<T = any, R = T, M = CallableFunction | string>(arr: T[], fnOrModulePath: FNOrModulePath<M>, options?: JobOptions): P<R[]>;
     _queuePush<T = any, R = T, M = CallableFunction | string>(arr: T[], fnOrModulePath: FNOrModulePath<M>, options?: JobOptions, cb?: {
         (err: any, data: any): void;
         (arg0: Error, arg1: any[]): any;

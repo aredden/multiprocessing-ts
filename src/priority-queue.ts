@@ -1,6 +1,7 @@
 import Pool from './pool';
 import Heap from './heap';
 import P from 'bluebird';
+import type { JobOptions } from 'index';
 
 export default class PriorityQueue {
 	numReadyWorkers: number;
@@ -13,7 +14,12 @@ export default class PriorityQueue {
 		this.heap = new Heap();
 	}
 
-	push<T = any, R = any>(arg: T, priority: number, fnOrModulePath: (arg: T) => R | string, options?: any) {
+	push<T = any, R = any>(
+		arg: T,
+		priority: number,
+		fnOrModulePath: (arg: T) => R | string,
+		options?: JobOptions
+	) {
 		return new P<R>((resolve, reject) => {
 			this.heap.insert(priority, {
 				args: [arg, fnOrModulePath, options],
