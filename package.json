@@ -59,7 +59,7 @@
 	"dependencies": {
 		"bluebird": "^3.7.2",
 		"escope": "^3.6.0",
-		"superjson": "^1.8.0"
+		"superjson": "^1.8.1"
 	},
 	"devDependencies": {
 		"@babel/cli": "^7.16.0",
